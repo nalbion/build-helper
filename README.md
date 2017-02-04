@@ -6,7 +6,9 @@
     - parses `~/.build-helper.yml`, `./build-helper.yml`, `./package.json` or `./pom.xml`
     - prompts for required info, offering defaults
       - name, version, language, ci, cd, template repo
-    - writes `build-helper.yml`
+    - writes `build-helper.yml`. `package.json` or `pom.xml`
+    
+  - `bh set cloud=google|aws|huroku`
         
   - `bh gen xxxx`, `bh update xxxx`, `bh run xxxx param1 param2...`
     - runs a recipe configured in the template repo
