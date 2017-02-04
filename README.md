@@ -8,6 +8,9 @@
       - name, version, language, ci, cd, template repo
     - writes `build-helper.yml`. `package.json` or `pom.xml`
     
+  - `bh init team`
+    - initialise global configuration for a team ('personal', 'company-a', 'os-project-x')
+    
   - `bh set cloud=google|aws|huroku`
         
   - `bh gen xxxx`, `bh update xxxx`, `bh run xxxx param1 param2...`

@@ -5,10 +5,6 @@ export class CloudDetector extends Detector {
     cloud?: string;
     data: any = {};
 
-    constructor(model: Model) {
-        super(model);
-    }
-
     scanFiles(files: string[]) {
         let p = [],
             i = files.length;

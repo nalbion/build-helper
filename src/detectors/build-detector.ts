@@ -5,10 +5,6 @@ export class BuildDetector extends Detector {
     buildFile: string;
     data: any = {};
 
-    constructor(model: Model) {
-        super(model);
-    }
-
     scanFiles(files: string[]) {
         return Promise.resolve(null);
     }

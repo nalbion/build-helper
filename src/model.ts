@@ -2,28 +2,58 @@ var fs = require('fs');
 var path = require('path');
 var yaml = require('js-yaml');
 
+export const BUILD_HELPER_CONFIG = 'build-helper.yml';
+export const BUILD_HELPER_GLOBAL_CONFIG = '~/.' + BUILD_HELPER_CONFIG;
+
+export interface Team {
+    configRepo: string;
+    /** http://docs.shippable.com/pipelines/gettingStarted/#sync-repository */
+    syncRepo: string;
+}
+
+/** stored at ~/.build-helper.yml */
+export interface GlobalConfig {
+    /** Mapped by team SCM URL compoent - eg 'github.com/my-team' */
+    teams: Map<string, Team>;
+}
+
 
 export class Model {
     private model: any;
 
-    load() {
-        return Model.readYaml('build-helper.yml', 'utf8', false).then((data) => {
-            if (data != null) {
-                this.model = data;
-            } else {
-                return Model.readPackageJson().then((data) => {
-                    if (data != null) {
-                        this.model = data;
-                    } else {
-                        return Model.readPomXml().then((data) => {
-                            if (data != null) {
-                                this.model = data;
-                            }
-                        })
-                    }
-                })
-            }
+    static loadGlobalConfig(): Promise.IThenable<GlobalConfig> {
+        return Model.readYaml(BUILD_HELPER_GLOBAL_CONFIG, 'utf8', false);
+    }
+
+    static saveGlobalConfig(globalConfig: GlobalConfig) {
+        console.info('saving global config:', globalConfig);
+        return Model.writeYaml(BUILD_HELPER_GLOBAL_CONFIG, globalConfig);
+    }
+
+    static load() {
+        return Model.loadGlobalConfig().then((globalConfig) => {
+            return Model.readYaml(BUILD_HELPER_CONFIG, 'utf8', false).then((data) => {
+                if (data != null) {
+                    Model.model = data;
+                } else {
+                    return Model.readPackageJson().then((data) => {
+                        if (data != null) {
+                            Model.model = data;
+                        } else {
+                            return Model.readPomXml().then((data) => {
+                                if (data != null) {
+                                    Model.model = data;
+                                }
+                            })
+                        }
+                    })
+                }
+            })
         })
+    }
+
+    static save() {
+        return Model.writeYaml(BUILD_HELPER_CONFIG, Model.model);
     }
 
     setCloud(cloud: string) {
@@ -49,7 +79,7 @@ export class Model {
                     }
                 } else {
                     var data = require(path.resolve(fileName));
-                    console.info(fileName, data);
+                    // console.info(fileName, data);
                     resolve(data);
                 }
             })
@@ -87,10 +117,16 @@ export class Model {
 
     static writeFile(fileName: string, data: string|Buffer, options?: any): Promise.IThenable<void> {
         return new Promise((resolve, reject) => {
+            if (fileName[0] === '~') {
+                fileName = path.join(process.env.HOME, fileName.slice(1));
+            }
+
             fs.writeFile(fileName, data, options, (err) => {
                 if (err) {
+                    console.info('failed to write file:', err);
                     reject(err);
                 } else {
+                    console.info('wrote file:', fileName);
                     resolve();
                 }
             })
@@ -105,7 +141,11 @@ export class Model {
      */
     static readFile(fileName: string, encoding?: string, failIfNotExist?: boolean): Promise.IThenable<string|Buffer> {
         return new Promise((resolve, reject) => {
-            console.info('loading', fileName);
+            if (fileName[0] === '~') {
+                fileName = path.join(process.env.HOME, fileName.slice(1));
+            }
+
+            // console.info('loading', fileName);
             fs.readFile(fileName, {encoding: encoding}, (err, data) => {
                 if (err) {
                     if (err.code === 'ENOENT' && failIfNotExist === false) {

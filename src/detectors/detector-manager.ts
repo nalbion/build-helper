@@ -1,4 +1,3 @@
-import {Model} from '../model';
 import {BuildDetector} from './build-detector';
 import {CiDetector} from './ci-detector';
 import {CloudDetector} from './cloud-detector';
@@ -9,21 +8,12 @@ import {ScmDetector} from './scm-detector';
 var fs = require('fs');
 
 export class DetectorManager {
-    private build: BuildDetector;
-    private ci: CiDetector;
-    private cloud: CloudDetector;
-    private deploy: DeployDetector;
-    private language: LanguageDetector;
-    private scm: ScmDetector;
-
-    constructor(model: Model) {
-        this.build = new BuildDetector(model);
-        this.ci = new CiDetector(model);
-        this.cloud = new CloudDetector(model);
-        this.deploy = new DeployDetector(model);
-        this.language = new LanguageDetector(model);
-        this.scm = new ScmDetector(model);
-    }
+    private build = new BuildDetector();
+    private ci = new CiDetector();
+    private cloud = new CloudDetector();
+    private deploy = new DeployDetector();
+    private language = new LanguageDetector();
+    private scm = new ScmDetector();
 
     load() {
         return new Promise((resolve, reject) => {

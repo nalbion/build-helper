@@ -5,10 +5,6 @@ export class CiDetector extends Detector {
     file: string;
     data: any = {};
 
-    constructor(model: Model) {
-        super(model);
-    }
-
     scanFiles(files: string[]) {
         return Promise.resolve(null);
     }
