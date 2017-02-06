@@ -26,7 +26,7 @@ export class CloudDetector extends Detector {
     }
 
     parseProcFile(fileName: string) {
-        return readFile(fileName, 'utf8').then((data) => {
+        return this.readFile(fileName, 'utf8').then((data) => {
             this.cloud = 'Heroku';
         });
     }

@@ -10,7 +10,8 @@
     "noImplicitAny": false,
     "outDir": "lib",
     "rootDir": "src",
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node", "core-js"]
   },
   "include": [
     "src/**/*.ts"

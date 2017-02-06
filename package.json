@@ -30,10 +30,14 @@
   },
   "homepage": "https://github.com/nalbion/build-helper#readme",
   "dependencies": {
+    "@types/core-js": "^0.9.35",
     "js-yaml": "^3.7.0",
     "marked": "^0.3.6",
     "marked-terminal": "^2.0.0",
     "terminal-kit": "^0.26.1",
     "xml-js": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^7.0.5"
   }
 }

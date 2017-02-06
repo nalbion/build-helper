@@ -1,4 +1,4 @@
-import {Model, BUILD_HELPER_GLOBAL_CONFIG, GlobalConfig} from '../model';
+import {Model, BUILD_HELPER_GLOBAL_CONFIG, GlobalConfig, TeamConfig, RepoConfig} from '../model';
 import {term, buildHelperBanner} from '../term';
 
 var fs = require('fs');
@@ -12,29 +12,88 @@ var path = require('path');
                 globalConfig = {};
             }
 
-            return initTeam(globalConfig)
-                .then(() => {
-                    return globalConfig;
-                });
+            return Model.loadRepoConfig().then((repoConfig) => {
+                return initTeam(globalConfig, repoConfig);
+            }).then((repoConfig: RepoConfig) => {
+                return Model.saveGlobalConfig(globalConfig).then(Model.saveRepoConfig);
+            });
         });
-    }).then((globalConfig) => {
-        return Model.saveGlobalConfig(globalConfig);
     }).catch((err) => {
         term.red('\n' + err + '\n');
         throw 'init failed'
     });
 };
 
-function initTeam(globalConfig: any) {
-    return promptForTeamUrl(globalConfig).then((teamUrl) => {
+function initTeam(globalConfig: GlobalConfig, repoConfig?: RepoConfig): Promise<RepoConfig> {
+    return promptForTeamUrl(globalConfig, repoConfig).then((teamUrl) => {
+        Model.setTeam(teamUrl);
+
         if (!globalConfig.teams[teamUrl]) {
             globalConfig.teams[teamUrl] = {}
         }
-        return globalConfig.teams[teamUrl];
+        var teamConfig = globalConfig.teams[teamUrl];
+
+        // All sub-functions should accept `teamConfig` as the last parameter so that the promises can be chained
+        return initTeamConfigRepo(teamUrl, teamConfig)  // .then(initHttpsOrSsh)
+                .then(initTeamConfigBranch);
+    }).then(() => {
+        return repoConfig;
     })
 }
 
-function promptForTeamName(globalConfig: any) {
+function initTeamConfigRepo(teamUrl: string, teamConfig: TeamConfig) {
+    var prefix = 'https://' + teamUrl + '/',
+        label = 'Team build-helper config repo: ' + prefix;
+
+    if (teamConfig.configRepo) {
+        console.info(label + teamConfig.configRepo);
+        return Promise.resolve(teamConfig);
+    } else {
+        return new Promise((resolve, reject) => {
+            term.bold(label);
+            term.inputField({}, (err, input: string) => {
+                if (err) {
+                    reject(err);
+                } else if (input.length == 0) {
+                    reject('invalid team config repo URL');
+                } else {
+                    term('\n');
+                    teamConfig.configRepo = input;
+                    resolve(teamConfig);
+                }
+            })
+        });
+    }
+}
+
+function initTeamConfigBranch(teamConfig: TeamConfig) {
+    var label = 'Team build-helper config branch: ';
+
+    if (teamConfig.configBranch) {
+        console.info(label + teamConfig.configBranch);
+        return Promise.resolve(teamConfig);
+    } else {
+        return new Promise((resolve, reject) => {
+            term.bold(label);
+            term.inputField({
+                autoComplete: [
+                    'develop',
+                    'master',
+                    'main'
+                ]
+            }, (err, input: string) => {
+                if (err) {
+                    reject(err);
+                } else if (input.length == 0) {
+                    reject('invalid team config repo branch');
+                } else {
+                    term('\n');
+                    teamConfig.configBranch = input;
+                    resolve(teamConfig);
+                }
+            })
+        });
+    }
 }
 
 function guessTeamUrl(globalConfig: GlobalConfig, workingDir: string) {
@@ -87,8 +146,21 @@ function guessTeamUrl(globalConfig: GlobalConfig, workingDir: string) {
  * @param globalConfig
  * @returns {Promise} resolves with the team URL path, eg: 'github.com/my-team'
  */
-function promptForTeamUrl(globalConfig: GlobalConfig) {
+function promptForTeamUrl(globalConfig: GlobalConfig, repoConfig?: RepoConfig) {
+    var label = 'Team version control URL: https://';
+
+    if (repoConfig && repoConfig.team) {
+        console.info(label + repoConfig.team);
+        return Promise.resolve(repoConfig.team);
+    }
+
     var guess = guessTeamUrl(globalConfig, process.env.PWD || process.env.CWD);
+
+    if (guess == null) {
+        term.brightBlack.bgYellow('  TIP: ')
+            .brightBlack.bgYellow.bold('https://golang.org/doc/code.html#Workspaces')
+            .brightBlack.bgYellow('provides a good convention for project paths ');
+    }
 
     if (!globalConfig.teams || Object.keys(globalConfig.teams).length == 0) {
         var example = guess ? guess : 'github.com/your-team';
@@ -103,21 +175,33 @@ function promptForTeamUrl(globalConfig: GlobalConfig) {
             .brightBlack.bgYellow.bold('TAB')
             .brightBlack.bgYellow(' for autocompletion or ')
             .brightBlack.bgYellow.bold('UP')
-            .brightBlack.bgYellow(' for your existing teams  \n');
+            .brightBlack.bgYellow(' for your existing teams');
+        if (guess) {
+            term.brightBlack.bgYellow(' or ')
+                .brightBlack.bgYellow.bold('ENTER')
+                .brightBlack.bgYellow(' for ')
+                .brightBlack.bgYellow.bold(guess);
+        }
+        term('  \n');
     }
     term.defaultColor.bgDefaultColor().styleReset();
 
-    return new Promise((resolve, reject) => {
-        term.bold('Team version control URL: https://');
+    return new Promise<string>((resolve, reject) => {
+        term.bold(label);
         term.inputField({
             history: Object.keys(globalConfig.teams),
             autoComplete: createAutoCompleter(TEAM_URL_SUGGESTIONS, guess),
             autoCompleteMenu: true
-        }, (err: error, input: text) => {
+        }, (err, input: string) => {
             if (err) {
                 reject(err);
             } else if (input.length == 0) {
-                reject('invalid team URL');
+                if (guess == null) {
+                    reject('invalid team URL');
+                } else {
+                    term(guess + '\n');
+                    resolve(guess);
+                }
             } else {
                 term('\n');
                 resolve(input);
@@ -138,7 +222,7 @@ const TEAM_URL_SUGGESTIONS = [
 
 function createAutoCompleter(suggestions: string[], guess?: string): (text: string) => string[] | boolean {
     return (text: string) => {
-        var results = [];
+        var results: string[] = [];
         if (guess) {
             results.push(guess);
         }
