@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var yaml = require('js-yaml');
 
+export const BUILD_HELPER_CACHE = '.build-helper/';
 export const BUILD_HELPER_CONFIG = 'build-helper.yml';
 export const BUILD_HELPER_GLOBAL_CONFIG = '~/.' + BUILD_HELPER_CONFIG;
 
@@ -18,14 +19,30 @@ export interface GlobalConfig {
     teams?: {[teamUrl: string]: TeamConfig};
 }
 
-export interface RepoConfig {
+
+export interface ProjectConfig {
     /** eg 'github.com/my-team' */
     team?: string;
+    name?: string;
+}
+declare type BuildConfig = any;
+declare type DeployConfig = any;
+
+export class RepoConfig {
+    project: ProjectConfig;
+    build: BuildConfig;
+    deploy: DeployConfig;
+
+    constructor(project?: ProjectConfig) {
+        this.project = project || {};
+        this.build = {};
+        this.deploy = {};
+    }
 }
 
 
 export class Model {
-    private static model: RepoConfig = {};
+    private static model: RepoConfig = new RepoConfig();
 
     static loadGlobalConfig(): Promise<GlobalConfig> {
         return Model.readYaml(BUILD_HELPER_GLOBAL_CONFIG, 'utf8', false);
@@ -39,15 +56,16 @@ export class Model {
             } else {
                 return Model.readPackageJson().then((data) => {
                     if (data != null) {
-                        Model.model = data;
-                        data;
+                        Model.model = new RepoConfig({name: data.name});
+                        return data;
                     } else {
-                        return Model.readPomXml().then((data) => {
-                            if (data != null) {
-                                Model.model = data;
-                            }
-                            return data;
-                        })
+                        // return Model.readPomXml().then((data) => {
+                        //     if (data != null) {
+                        //         Model.model = data;
+                        //     }
+                        //     return data;
+                        // })
+                        return null;
                     }
                 })
             }
@@ -67,16 +85,16 @@ export class Model {
         return Model.loadGlobalConfig().then(Model.loadRepoConfig);
     }
 
-    static save() {
-        return Model.saveGlobalConfig().then(Model.saveRepoConfig);
-    }
+    // static save() {
+    //     return Model.saveGlobalConfig().then(Model.saveRepoConfig);
+    // }
 
     // static setCloud(cloud: string) {
     //     Model.model.cloud = cloud;
     // }
 
     static setTeam(team: string) {
-        Model.model.team = team;
+        Model.model.project.team = team;
     }
 
     static readPackageJson(failIfNotExist = false) {
@@ -87,7 +105,7 @@ export class Model {
        return Model.readXml('pom.xml', 'utf-8', failIfNotExist);
     }
 
-    static readJson(fileName: string, failIfNotExist = false) {
+    static readJson(fileName: string, failIfNotExist = false): Promise<any> {
         return new Promise((resolve, reject) => {
             fs.exists(fileName, (exists) => {
                 if (!exists) {
@@ -106,6 +124,7 @@ export class Model {
     }
 
     static writeJson(fileName: string, data: any) {
+console.info('writing to', fileName, JSON.stringify(data));
         return Model.writeFile(fileName, JSON.stringify(data));
     }
 
@@ -141,13 +160,20 @@ export class Model {
                 fileName = path.join(process.env.HOME, fileName.slice(1));
             }
 
-            fs.writeFile(fileName, data, options, (err) => {
+            require('mkdirp')(path.dirname(fileName), (err) => {
                 if (err) {
-                    console.info('failed to write file:', err);
+                    console.error('failed to create directory:', err);
                     reject(err);
                 } else {
-                    // console.info('wrote file:', fileName);
-                    resolve();
+                    fs.writeFile(fileName, data, options, (err) => {
+                        if (err) {
+                            console.error('failed to write file:', err);
+                            reject(err);
+                        } else {
+                            // console.info('wrote file:', fileName);
+                            resolve();
+                        }
+                    })
                 }
             })
         })

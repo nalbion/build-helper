@@ -31,9 +31,13 @@
   "homepage": "https://github.com/nalbion/build-helper#readme",
   "dependencies": {
     "@types/core-js": "^0.9.35",
+    "handlebars": "^4.0.6",
     "js-yaml": "^3.7.0",
     "marked": "^0.3.6",
     "marked-terminal": "^2.0.0",
+    "mkdirp": "^0.5.1",
+    "netrc": "^0.1.4",
+    "source-map-support": "^0.4.11",
     "terminal-kit": "^0.26.1",
     "xml-js": "^1.0.2"
   },

@@ -2,10 +2,11 @@
 import {Model} from './model'
 import {DetectorManager} from "./detectors/detector-manager";
 
+require('source-map-support').install();
 
 function run() {
     var detectorManager = new DetectorManager(),
-        /** init, set, version, deploy, rollback, connect, disconnect/kill, bot */
+        /** init, set, genm, version, deploy, rollback, connect, disconnect/kill, bot */
         cmd = process.argv[2] || 'help',
         handler;
 
@@ -19,11 +20,23 @@ function run() {
         case 'set':
             handler = require('./commands/set');
             break;
+        case 'gen':
+            handler = require('./commands/gen');
+            break;
+        case 'update':
+            handler = require('./commands/update');
+            break;
+        case 'run':
+            handler = require('./commands/run');
+            break;
         case 'version':
             handler = require('./commands/version');
             break;
         case 'deploy':
             handler = require('./commands/deploy');
+            break;
+        case 'rollback':
+            handler = require('./commands/rollback');
             break;
         case 'connect':
             handler = require('./commands/connect');

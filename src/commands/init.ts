@@ -1,4 +1,4 @@
-import {Model, BUILD_HELPER_GLOBAL_CONFIG, GlobalConfig, TeamConfig, RepoConfig} from '../model';
+import {Model, GlobalConfig, TeamConfig, RepoConfig} from '../model';
 import {term, buildHelperBanner} from '../term';
 
 var fs = require('fs');
@@ -13,6 +13,9 @@ var path = require('path');
             }
 
             return Model.loadRepoConfig().then((repoConfig) => {
+                if (!repoConfig) {
+                    repoConfig = new RepoConfig();
+                }
                 return initTeam(globalConfig, repoConfig);
             }).then((repoConfig: RepoConfig) => {
                 return Model.saveGlobalConfig(globalConfig).then(Model.saveRepoConfig);
@@ -29,7 +32,7 @@ function initTeam(globalConfig: GlobalConfig, repoConfig?: RepoConfig): Promise<
         Model.setTeam(teamUrl);
 
         if (!globalConfig.teams[teamUrl]) {
-            globalConfig.teams[teamUrl] = {}
+            globalConfig.teams[teamUrl] = {};
         }
         var teamConfig = globalConfig.teams[teamUrl];
 
@@ -96,7 +99,7 @@ function initTeamConfigBranch(teamConfig: TeamConfig) {
     }
 }
 
-function guessTeamUrl(globalConfig: GlobalConfig, workingDir: string) {
+function guessTeamUrl(globalConfig: GlobalConfig, workingDir: string): string {
     var teamUrls = globalConfig.teams ? Object.keys(globalConfig.teams): null;
     var bestGuess = teamUrls ? teamUrls[0] : null;
 
@@ -146,12 +149,12 @@ function guessTeamUrl(globalConfig: GlobalConfig, workingDir: string) {
  * @param globalConfig
  * @returns {Promise} resolves with the team URL path, eg: 'github.com/my-team'
  */
-function promptForTeamUrl(globalConfig: GlobalConfig, repoConfig?: RepoConfig) {
+function promptForTeamUrl(globalConfig: GlobalConfig, repoConfig?: RepoConfig): Promise<string> {
     var label = 'Team version control URL: https://';
 
-    if (repoConfig && repoConfig.team) {
-        console.info(label + repoConfig.team);
-        return Promise.resolve(repoConfig.team);
+    if (repoConfig.project.team) {
+        console.info(label + repoConfig.project.team);
+        return Promise.resolve(repoConfig.project.team);
     }
 
     var guess = guessTeamUrl(globalConfig, process.env.PWD || process.env.CWD);
