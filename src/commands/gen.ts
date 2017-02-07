@@ -70,8 +70,8 @@ function loadTemplate(teamUrl: string, configRepo: string, branch: string, templ
         options = {
             hostname: hostName,
             headers: {
-                'Cache-Control': 'private, no-cache, no-store, must-revalidate, max-age=0',
-                Pragma: 'no-cache'
+                'cache-control': 'private, no-cache, no-store, must-revalidate, max-age=0',
+                pragma: 'no-cache'
             }
         };
     if (hostName == 'bitbucket.org') {
@@ -91,7 +91,7 @@ function loadTemplate(teamUrl: string, configRepo: string, branch: string, templ
 
     return sendHttpsGet(options)
         .then((template) => {
-            console.info('downloaded template:', template);
+            // console.info('downloaded template:', template);
             var templateSpec = Handlebars.precompile(template);
             return Model.writeFile(templatePath + '.js', 'module.exports = ' + templateSpec)
                 .then(() => {
@@ -113,7 +113,7 @@ function getAuthorization(hostName: string): {login: string, password?: string} 
 
 function sendHttpsGet(options: {hostname: string, path?: string, auth?: string, headers?: any, method?; string}): Promise<string> {
     const https = require('https');
-    console.info(options);
+    // console.info(options);
     return new Promise((resolve, reject) => {
         https.get(options, (res) => {
             if (res.statusCode != 200) {
