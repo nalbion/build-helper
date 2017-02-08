@@ -3,6 +3,7 @@ import {Model, GlobalConfig, TeamConfig, RepoConfig, BUILD_HELPER_CACHE} from '.
 var fs = require('fs');
 var path = require('path');
 var Handlebars = require('handlebars');
+require('../utils/handlebars-helpers');
 
 /**
  * `bh gen <templateName>`
@@ -20,7 +21,8 @@ var Handlebars = require('handlebars');
                     return loadTemplate(teamUrl, teamConfig.configRepo, teamConfig.configBranch, templateName);
                 });
         }).then((template) => {
-            console.info(template(repoConfig));
+            console.info('Writing', templateName);
+            return Model.writeFile(templateName, template(repoConfig));
         });
     });
 };

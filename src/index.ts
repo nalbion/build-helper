@@ -54,7 +54,9 @@ function run() {
     }
 
     return handler().then((result) => {
-        console.info('result:', result);
+        if (result) {
+            console.info('result:', result);
+        }
         process.exit() ;
     }).catch((err) => {
         console.error(err);
