@@ -69,7 +69,7 @@ function loadTemplate(teamUrl: string, configRepo: string, branch: string, templ
     // look the team config repo
     var hostName = teamUrl.substr(0, teamUrl.indexOf('/')),
         auth = getAuthorization(hostName),
-        options = {
+        options: any = {
             hostname: hostName,
             headers: {
                 'cache-control': 'private, no-cache, no-store, must-revalidate, max-age=0',
