@@ -52,6 +52,8 @@ function fixTemplateName(templateName) {
         case 'bitbucket-pipelines':
         case 'shippable':
             return templateName + '.yml';
+        default:
+            return templateName;
     }
 }
 
