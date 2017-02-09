@@ -15,7 +15,7 @@ require('../utils/handlebars-helpers');
         return Model.loadGlobalConfig().then((globalConfig) => {
             var teamUrl = repoConfig.project.team;
             var teamConfig = globalConfig.teams[teamUrl];
-            return requireTemplate(templateName)
+            return loadPrecompiledTemplate(templateName)
                 .catch((err) => {
                     // console.info('failed to require pre-cached template:', err);
                     return loadTemplate(teamUrl, teamConfig.configRepo, teamConfig.configBranch, templateName);
@@ -30,9 +30,9 @@ require('../utils/handlebars-helpers');
 /**
  * @param templateName  eg: shippable.yml
  *
- * @returns {Promise<TResult>}
+ * @returns {Promise<Function>}
  */
-function requireTemplate(templateName: string): Promise<Function> {
+function loadPrecompiledTemplate(templateName: string): Promise<Function> {
     // look in local cache
     var templatePath = './' + BUILD_HELPER_CACHE + 'templates/' + templateName;
 
@@ -61,9 +61,42 @@ function requireTemplate(templateName: string): Promise<Function> {
  * @param branch        eg: develop
  * @param templateName  eg: shippable.yml
  *
- * @returns {Promise<TResult>}
+ * @returns {Promise<Function>}
  */
 function loadTemplate(teamUrl: string, configRepo: string, branch: string, templateName: string): Promise<Function> {
+    return loadLocalTemplate(teamUrl, configRepo, branch, templateName).then((template) => {
+        if (template) {
+            return template;
+        }
+        return loadRemoteTemplate(teamUrl, configRepo, branch, templateName);
+    }).then((template: string) => {
+        // console.info('downloaded template:', template);
+        var templateSpec = Handlebars.precompile(template);
+        return Model.writeFile(templatePath + '.js', 'module.exports = ' + templateSpec)
+            .then(() => {
+                console.info('compiling template');
+                return Handlebars.compile(template);
+            });
+    })
+}
+
+function loadLocalTemplate(teamUrl: string, configRepo: string, branch: string, templateName: string): Promise<string> {
+    var templatePath = BUILD_HELPER_CACHE + 'templates/' + templateName;
+    var localPath = '../' + configRepo + '/' +  templatePath + '.hbs';
+
+    return new Promise((resolve, reject) => {
+        fs.exists(localPath, (exists) => {
+            if (exists) {
+                console.info('loading local template:', localPath);
+                Model.readFile(localPath, 'utf8').then(resolve);
+            } else {
+                resolve(null);
+            }
+        })
+    });
+}
+
+function loadRemoteTemplate(teamUrl: string, configRepo: string, branch: string, templateName: string): Promise<string> {
     var templatePath = BUILD_HELPER_CACHE + 'templates/' + templateName;
 
     // look the team config repo
@@ -91,20 +124,14 @@ function loadTemplate(teamUrl: string, configRepo: string, branch: string, templ
         options.headers.Authorization = options.login;
     }
 
+    console.info('loading remote template:', options.path);
     return sendHttpsGet(options)
-        .then((template) => {
-            // console.info('downloaded template:', template);
-            var templateSpec = Handlebars.precompile(template);
-            return Model.writeFile(templatePath + '.js', 'module.exports = ' + templateSpec)
-                .then(() => {
-                    return Handlebars.compile(template);
-                });
-        })
         .catch((err) => {
             if (err == 404) {
                 throw 'Sorry, unable to find template ' + templateName;
             } else {
                 console.error('unexpected error:', err);
+                throw err;
             }
         });
 }
