@@ -53,7 +53,7 @@ function run() {
             handler = require('./commands/help');
     }
 
-    return handler().then((result) => {
+    return handler.apply(null, process.argv.slice(3)).then((result) => {
         if (result) {
             console.info('result:', result);
         }

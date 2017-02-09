@@ -107,20 +107,18 @@ export class Model {
 
     static readJson(fileName: string, failIfNotExist = false): Promise<any> {
         return new Promise((resolve, reject) => {
-            fs.exists(fileName, (exists) => {
-                if (!exists) {
-                    if (failIfNotExist) {
-                        reject(fileName + ' does not exist');
-                    } else {
-                        resolve(null);
-                    }
+            try {
+                var data = require(path.resolve(fileName));
+                // console.info(fileName, data);
+                resolve(data);
+            } catch (err) {
+                if (failIfNotExist) {
+                    reject(fileName + ' does not exist');
                 } else {
-                    var data = require(path.resolve(fileName));
-                    // console.info(fileName, data);
-                    resolve(data);
+                    resolve(null);
                 }
-            })
-        })
+            }
+        });
     }
 
     static writeJson(fileName: string, data: any) {

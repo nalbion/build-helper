@@ -24,5 +24,8 @@ Handlebars.registerHelper({
     },
     or: function (v1, v2) {
         return Array.prototype.slice.call(arguments, 0, arguments.length - 1).some(Boolean);
+    },
+    replaceAll: function (_replace, _with, str) {
+        return str.replace(new RegExp(_replace, 'g'), _with);
     }
 });
